@@ -23,6 +23,7 @@
     
   CCLabelTTF* _robot1Label;
   CCLabelTTF* _robot2Label;
+  CCLabelTTF* _bombCountdownLabel;
   
   CGFloat timeSinceBomb;
 }
@@ -34,7 +35,7 @@
 }
 
 - (void)didLoadFromCCB {
-  timeSinceBomb = 0.f;
+  [self updateTimeSinceBomb:0.0f];
   
   _bullets = [NSMutableArray array];
   
@@ -100,7 +101,7 @@
 - (void)update:(CCTime)delta {
   timeSinceLastEvent += delta * GAME_SPEED;
   self.currentTimestamp += delta * GAME_SPEED;
-  timeSinceBomb += delta * GAME_SPEED;
+  [self updateTimeSinceBomb:timeSinceBomb + delta * GAME_SPEED];
   
   for (Robot *robot in _robots) {
     if (!CGRectContainsRect(self.boundingBox, robot.robotNode.boundingBox)) {
@@ -168,7 +169,7 @@
   
   if (self.currentTimestamp > START_BOMBS && timeSinceBomb > BETWEEN_BOMBS) {
       [self dropBomb];
-      timeSinceBomb = 0;
+      [self updateTimeSinceBomb:0.0f];
   }
     
   if (labelsNeedUpdate)
@@ -246,7 +247,7 @@
   CGPoint diffFromCorner = ccpMult(ccpForAngle(CC_DEGREES_TO_RADIANS(angle)), distance);
   CGPoint bombPos = ccpAdd(cornerPosition, diffFromCorner);
   
-  CCParticleSystem *explosion = (CCParticleSystem *) [CCBReader load:@"RobotExplosion"];
+  CCParticleSystem *explosion = (CCParticleSystem *) [CCBReader load:@"BombExplosion"];
   [_gameNode addChild:explosion];
   explosion.position = bombPos;
   explosion.autoRemoveOnFinish = YES;
@@ -338,6 +339,32 @@
       _robot2Label.string = [NSString stringWithFormat:@"%@: %ld", robot2.robotClass, (long)[robot2 hitPoints]];
   else
       _robot2Label.string = [NSString stringWithFormat:@"DEAD"];
+}
+
+- (void)updateTimeSinceBomb:(CGFloat)pTimeSinceBomb {
+    timeSinceBomb = pTimeSinceBomb;
+    
+    float timeUntilBomb = 0.0f;
+    
+    if (self.currentTimestamp > START_BOMBS)
+    {
+        timeUntilBomb = BETWEEN_BOMBS - timeSinceBomb;
+    }
+    else
+    {
+        timeUntilBomb = START_BOMBS - timeSinceBomb;
+    }
+    
+    if (timeUntilBomb <= 1.0f)
+    {
+        _bombCountdownLabel.string = @"Warning";
+        _bombCountdownLabel.color = [CCColor colorWithCcColor3b:ccc3(255, 0, 255)];
+    }
+    else
+    {
+        _bombCountdownLabel.string = [NSString stringWithFormat:@"%.0f", timeUntilBomb];
+        _bombCountdownLabel.color = [CCColor colorWithCcColor3b:ccc3(255, 255, 255)];
+    }
 }
 
 - (void)cleanupBullet:(CCNode *)bullet {
